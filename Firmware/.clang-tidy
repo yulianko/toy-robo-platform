@@ -8,23 +8,25 @@ CheckOptions:
   - key:   llvm-header-guard.HeaderGuardSuffix
     value: '_H'
 
+  - key:   readability-identifier-naming.ClassCase
+    value: PascalCase
   - key:   readability-identifier-naming.PrivateMemberPrefix
     value: '_'
   - key:   readability-identifier-naming.PrivateMemberCase
     value: camelCase
-  - key:   readability-identifier-naming.ClassCase
-    value: PascalCase
   - key:   readability-identifier-naming.ConstantCase
     value: UPPER_CASE
   - key:   readability-identifier-naming.ConstantPrefix
     value: ''
   - key:   readability-identifier-naming.MemberConstantCase
-    value: UPPER_CASE
+    value: camelCase
   - key:   readability-identifier-naming.MemberConstantPrefix
-    value: ''
+    value: '_'
   - key:   readability-identifier-naming.GlobalConstantCase
     value: UPPER_CASE
   - key:   readability-identifier-naming.NamespaceConstantCase
+    value: UPPER_CASE
+  - key:   readability-identifier-naming.StaticConstantCase
     value: UPPER_CASE
   - key:   readability-identifier-naming.ParameterConstantCase
     value: camelBack
@@ -32,5 +34,3 @@ CheckOptions:
     value: camelBack
   - key:   readability-identifier-naming.LocalVariableCase
     value: camelBack
-  - key:   readability-identifier-naming.StaticConstantCase
-    value: CamelCase
