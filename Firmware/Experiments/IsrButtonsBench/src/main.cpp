@@ -3,45 +3,90 @@
 #include <freertos/task.h>
 
 #include "IsrButton.h"
+#include "PushButtonTask.h"
+#include "RobotEvent.h"
+#include "SysButtonTask.h"
 
 static const char* TAG = "main";
 
-static constexpr gpio_num_t BTN1_GPIO = GPIO_NUM_48;
-static constexpr gpio_num_t BTN2_GPIO = GPIO_NUM_47;
+static constexpr gpio_num_t SYS_BTN_GPIO = GPIO_NUM_0;  // GPIO_NUM_48;
+static constexpr gpio_num_t PUSH_BTN_GPIO = GPIO_NUM_47;
 
-static QueueHandle_t button1Queue;
-static QueueHandle_t button2Queue;
+// ---- Hardware Objects (wiring diagram) ----
+static IsrButton sysButton(
+    {.pin = SYS_BTN_GPIO, .subject = "sys_btn", .debounceUs = 150'000, .longPressUs = 2'000'000});
 
-static IsrButton btn1({BTN1_GPIO, "btn1", 150'000, 2'000'000});
-static IsrButton btn2({BTN2_GPIO, "btn2", 150'000, 1'000'000});
+static IsrButton pushButton(
+    {.pin = PUSH_BTN_GPIO, .subject = "push_btn", .debounceUs = 150'000, .longPressUs = 1'000'000});
 
-static void button1Task(void* arg) {
-    IsrButton::ButtonEvent ev;
-    while (true) {
-        if (xQueueReceive(button1Queue, &ev, portMAX_DELAY)) {
-            const char* actionStr = (ev.action == IsrButton::Action::CLICK) ? "CLICK" : "LONG_PRESS";
-            ESP_LOGI(TAG, "Button 1 %s: %s", ev.subject, actionStr);
-        }
+// ---- FreeRTOS Queues ----
+static QueueHandle_t robotEventQueue;
+
+static QueueHandle_t sysButtonQueue;
+static QueueHandle_t pushButtonQueue;
+
+const char* robotEventTypeToString(RobotEvent::Type type) {
+    switch (type) {
+        case RobotEvent::Type::SYS_BUTTON_SHORT_PRESSED:
+            return "SYS_BUTTON_SHORT_PRESSED";
+        case RobotEvent::Type::SYS_BUTTON_LONG_PRESSED:
+            return "SYS_BUTTON_LONG_PRESSED";
+        case RobotEvent::Type::PUSH_BUTTON_SHORT_PRESSED:
+            return "PUSH_BUTTON_SHORT_PRESSED";
+        case RobotEvent::Type::PUSH_BUTTON_LONG_PRESSED:
+            return "PUSH_BUTTON_LONG_PRESSED";
+        default:
+            return "UNKNOWN";
     }
 }
 
-static void button2Task(void* arg) {
-    IsrButton::ButtonEvent ev;
+static void robotEventTask(void* arg) {
+    RobotEvent event;
     while (true) {
-        if (xQueueReceive(button2Queue, &ev, portMAX_DELAY)) {
-            const char* actionStr = (ev.action == IsrButton::Action::CLICK) ? "CLICK" : "LONG_PRESS";
-            ESP_LOGI(TAG, "Button 2 %s: %s", ev.subject, actionStr);
+        if (xQueueReceive(robotEventQueue, &event, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "RobotEvent: %s", robotEventTypeToString(event.type));
+
+            if (event.type == RobotEvent::Type::SYS_BUTTON_LONG_PRESSED) {
+                ESP_LOGW(TAG, "Executing important system command!");
+            }
         }
     }
 }
 
 extern "C" void app_main() {
-    button1Queue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
-    button2Queue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
+    ESP_LOGI(TAG, "Starting ISR Buttons Bench with RobotEvent system");
 
-    btn1.init(button1Queue);
-    btn2.init(button2Queue);
+    // ---- 1. Create FreeRTOS queues ----
+    robotEventQueue = xQueueCreate(16, sizeof(RobotEvent));
+    sysButtonQueue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
+    pushButtonQueue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
+    if (!robotEventQueue || !sysButtonQueue || !pushButtonQueue) {
+        ESP_LOGE(TAG, "Failed to create queues");
+        return;
+    }
 
-    xTaskCreate(button1Task, "btn1_task", 2048, nullptr, 10, nullptr);
-    xTaskCreate(button2Task, "btn2_task", 2048, nullptr, 10, nullptr);
+    // ---- 2. Initialize hardware drivers ----
+    esp_err_t err = sysButton.init(sysButtonQueue);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to init sys button: %s", esp_err_to_name(err));
+        return;
+    }
+
+    err = pushButton.init(pushButtonQueue);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to init push button: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // ---- 3. Initialize and start tasks (dependency injection) ----
+    SysButtonTask::instance().init(sysButton, sysButtonQueue, robotEventQueue);
+    PushButtonTask::instance().init(pushButton, pushButtonQueue, robotEventQueue);
+
+    SysButtonTask::instance().start(6);
+    PushButtonTask::instance().start(6);
+
+    // ---- 4. Start robot event processing task ----
+    xTaskCreate(robotEventTask, "RobotEventTask", 3072, nullptr, 5, nullptr);
+
+    ESP_LOGI(TAG, "All tasks started successfully");
 }

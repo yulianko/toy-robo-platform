@@ -22,7 +22,6 @@ esp_err_t IsrButton::init(QueueHandle_t eventQueue) {
     ESP_RETURN_ON_ERROR(gpio_config(&gpio), TAG, "gpio_config failed");
 
     // Install ISR service once
-    // ESP_ERR_INVALID_STATE which means "already installed"
     esp_err_t err = gpio_install_isr_service(0);
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG, "gpio_install_isr_service failed: %d", err);
@@ -31,7 +30,6 @@ esp_err_t IsrButton::init(QueueHandle_t eventQueue) {
 
     ESP_RETURN_ON_ERROR(gpio_isr_handler_add(_config.pin, isrHandler, this), TAG, "gpio_isr_handler_add failed");
 
-    // Debounce timer
     TickType_t debounceTicks = pdMS_TO_TICKS(_config.debounceUs / 1000);
     if (debounceTicks == 0) {
         debounceTicks = 1;
@@ -56,18 +54,11 @@ esp_err_t IsrButton::init(QueueHandle_t eventQueue) {
     return ESP_OK;
 }
 
-void IsrButton::deinit() {
-    gpio_isr_handler_remove(_config.pin);
-    if (_debounceTimer) {
-        xTimerDelete(_debounceTimer, 0);
-        _debounceTimer = nullptr;
-    }
-}
-
 // ---- Private methods ----
 
 void IRAM_ATTR IsrButton::isrHandler(void* arg) {
     IsrButton* self = static_cast<IsrButton*>(arg);
+
     BaseType_t woken = pdFALSE;
     // Sets this to pdTRUE if resetting the timer unblocked a higher-priority task
     xTimerResetFromISR(self->_debounceTimer, &woken);
@@ -92,7 +83,7 @@ void IsrButton::debounceTimerCb(TimerHandle_t timer) {
 
             ButtonEvent ev{};
             strcpy(ev.subject, self->_config.subject);
-            ev.action = duration >= self->_config.longPressUs ? Action::LONG_PRESS : Action::CLICK;
+            ev.action = duration >= self->_config.longPressUs ? Action::LONG_PRESSED : Action::SHORT_PRESSED;
 
             xQueueSend(self->_queue, &ev, 0);
         }

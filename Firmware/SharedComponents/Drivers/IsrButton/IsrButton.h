@@ -9,8 +9,8 @@
 class IsrButton {
   public:
     enum class Action : uint8_t {
-        CLICK,
-        LONG_PRESS,
+        SHORT_PRESSED,
+        LONG_PRESSED,
     };
 
     struct ButtonEvent {
@@ -27,7 +27,6 @@ class IsrButton {
 
     IsrButton(const Config& config);
     esp_err_t init(QueueHandle_t eventQueue);
-    void deinit();
 
   private:
     static void IRAM_ATTR isrHandler(void* arg);
