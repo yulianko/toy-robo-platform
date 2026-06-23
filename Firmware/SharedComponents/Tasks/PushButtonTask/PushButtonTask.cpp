@@ -10,48 +10,12 @@ PushButtonTask& PushButtonTask::instance() {
     return inst;
 }
 
-PushButtonTask::PushButtonTask() {
-    // Empty constructor - initialization happens in init()
-}
-
 void PushButtonTask::init(IsrButton& button, QueueHandle_t buttonQueue, QueueHandle_t robotEventQueue) {
     _button = &button;  // Reference, not owner
     _buttonQueue = buttonQueue;
     _robotEventQueue = robotEventQueue;
 
     ESP_LOGI(TAG, "Initialized");
-}
-
-void PushButtonTask::start(UBaseType_t priority) {
-    if (_taskHandle != nullptr) {
-        ESP_LOGW(TAG, "Task already started");
-        return;
-    }
-
-    if (!_button || !_buttonQueue || !_robotEventQueue) {
-        ESP_LOGE(TAG, "Task not initialized - call init() first with all dependencies");
-        return;
-    }
-
-    // Create task - button and queue are already initialized by main
-    xTaskCreate(taskFn, "PushButtonTask", TASK_STACK, this, priority, &_taskHandle);
-    ESP_LOGI(TAG, "Started");
-}
-
-void PushButtonTask::stop() {
-    if (_taskHandle == nullptr) {
-        return;
-    }
-
-    vTaskDelete(_taskHandle);
-    _taskHandle = nullptr;
-
-    // Don't delete _buttonQueue - it's owned by main, not us
-    ESP_LOGI(TAG, "Stopped");
-}
-
-void PushButtonTask::taskFn(void* arg) {
-    static_cast<PushButtonTask*>(arg)->run();
 }
 
 void PushButtonTask::run() {
