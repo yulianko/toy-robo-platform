@@ -7,6 +7,7 @@
 #include "IndicatorCommand.h"
 #include "RobotEvent.h"
 #include "RgbPlayer.h"
+#include "SoundPlayer.h"
 
 class IndicatorsTask : public BaseTask {
   public:
@@ -15,7 +16,7 @@ class IndicatorsTask : public BaseTask {
         return instance;
     }
 
-    void init(RgbPlayer& rgbPlayer, QueueHandle_t commandQueue, QueueHandle_t robotEventQueue);
+    void init(RgbPlayer& rgbPlayer, SoundPlayer& soundPlayer, QueueHandle_t commandQueue, QueueHandle_t robotEventQueue);
 
   protected:
     const char* getTaskName() const override { return "IndicatorsTask"; }
@@ -30,6 +31,7 @@ class IndicatorsTask : public BaseTask {
     void checkDone();
     
     RgbPlayer* _rgbPlayer = nullptr;
+    SoundPlayer* _soundPlayer = nullptr;
     QueueHandle_t _commandQueue = nullptr;
     QueueHandle_t _robotEventQueue = nullptr;
     bool _initialized = false;

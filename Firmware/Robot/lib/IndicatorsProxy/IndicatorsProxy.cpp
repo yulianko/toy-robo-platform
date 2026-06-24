@@ -13,9 +13,33 @@ void IndicatorsProxy::start(const RgbAnimation& animation) {
         return;
     }
 
-    IndicatorCommand cmd = IndicatorCommand::start(animation);
+    IndicatorCommand cmd = IndicatorCommand::startRgb(animation);
     if (xQueueSend(_commandQueue, &cmd, 0) != pdTRUE) {
-        ESP_LOGW(TAG, "Failed to send start command");
+        ESP_LOGW(TAG, "Failed to send RGB start command");
+    }
+}
+
+void IndicatorsProxy::start(const SoundAnimation& animation) {
+    if (!_commandQueue) {
+        ESP_LOGW(TAG, "Command queue not set");
+        return;
+    }
+
+    IndicatorCommand cmd = IndicatorCommand::startSound(animation);
+    if (xQueueSend(_commandQueue, &cmd, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "Failed to send sound start command");
+    }
+}
+
+void IndicatorsProxy::start(const RgbAnimation& rgbAnimation, const SoundAnimation& soundAnimation) {
+    if (!_commandQueue) {
+        ESP_LOGW(TAG, "Command queue not set");
+        return;
+    }
+
+    IndicatorCommand cmd = IndicatorCommand::startBoth(rgbAnimation, soundAnimation);
+    if (xQueueSend(_commandQueue, &cmd, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "Failed to send combined start command");
     }
 }
 

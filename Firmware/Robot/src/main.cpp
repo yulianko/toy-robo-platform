@@ -10,6 +10,8 @@
 #include "RgbLedDriver.h"
 #include "RgbPlayer.h"
 #include "RobotEvent.h"
+#include "SoundDriver.h"
+#include "SoundPlayer.h"
 #include "SysButtonTask.h"
 
 // Robot components
@@ -30,6 +32,9 @@ static constexpr gpio_num_t PIN_R = GPIO_NUM_17;
 static constexpr gpio_num_t PIN_G = GPIO_NUM_16;
 static constexpr gpio_num_t PIN_B = GPIO_NUM_15;
 
+// Buzzer pin
+static constexpr gpio_num_t BUZZER_PIN = GPIO_NUM_4;
+
 // Hardware objects
 
 // Buttons
@@ -43,6 +48,11 @@ static IsrButton pushButton(
 static RgbLedDriver::Config driverCfg{.pinR = PIN_R, .pinG = PIN_G, .pinB = PIN_B};
 static RgbLedDriver rgbDriver(driverCfg);
 static RgbPlayer rgbPlayer(rgbDriver);
+
+// Sound/Buzzer
+static SoundLedcDriver::Config soundDriverCfg{.pin = BUZZER_PIN};
+static SoundLedcDriver soundDriver(soundDriverCfg);
+static SoundPlayer soundPlayer(soundDriver);
 
 // FreeRTOS queues
 static QueueHandle_t robotEventQueue;
@@ -90,10 +100,16 @@ extern "C" void app_main() {
         return;
     }
 
+    err = soundDriver.init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to init sound driver: %s", esp_err_to_name(err));
+        return;
+    }
+
     // ---- 4. Initialize tasks (DI) ----
     SysButtonTask::instance().init(sysButton, sysButtonQueue, robotEventQueue);
     PushButtonTask::instance().init(pushButton, pushButtonQueue, robotEventQueue);
-    IndicatorsTask::instance().init(rgbPlayer, indicatorCommandQueue, robotEventQueue);
+    IndicatorsTask::instance().init(rgbPlayer, soundPlayer, indicatorCommandQueue, robotEventQueue);
     ModeManagerTask::instance().init(robotContext, robotEventQueue);
 
     // ---- 5. Register modes with ModeManager ----
@@ -107,7 +123,7 @@ extern "C" void app_main() {
     ModeManagerTask::instance().start(5);  // Priority 5 - start after actuators
 
     // ---- 8. Start hardware tasks ----
-    SysButtonTask::instance().start(6);    // Priority 6 - highest priority
+    SysButtonTask::instance().start(6);  // Priority 6 - highest priority
     PushButtonTask::instance().start(6);
 
     ESP_LOGI(TAG, "All systems started successfully");

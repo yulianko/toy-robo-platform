@@ -6,6 +6,8 @@
 #include <freertos/task.h>
 
 #include "RgbColor.h"
+#include "RobotMenuAnimations.h"
+#include "RobotMenuSounds.h"
 
 static const char* TAG = "ModeManagerTask";
 
@@ -146,12 +148,6 @@ void ModeManagerTask::showCurrentMode() {
 
     const RgbColor color = MENU_COLORS[_selectedIdx % MENU_COLORS_COUNT];
 
-    static RgbAnimation::Step step;
-    static RgbAnimation animation("menu", &step, 1, 0);
-
-    step = {EffectSolid{color}, 0};
-    animation = RgbAnimation(_modes[_selectedIdx]->name(), &step, 1, 0);
-
     ESP_LOGI(TAG,
              "[MENU] %d/%d: %s (R=%d G=%d B=%d)",
              _selectedIdx + 1,
@@ -161,15 +157,10 @@ void ModeManagerTask::showCurrentMode() {
              color.g,
              color.b);
 
-    _ctx->indicators.start(animation);
+    _ctx->indicators.start(RobotMenuAnimations::modePulse(color), RobotMenuSounds::modeIndexBeeps(_selectedIdx + 1));
 }
 
 void ModeManagerTask::startMenuEntryAnimation() {
-    static RgbAnimation::Step step;
-    static RgbAnimation animation("menu_entry", &step, 1, 1);
-
-    step = {EffectPulse{RgbColor::white(), 10800, 0.1f}, 10800}, animation = RgbAnimation("menu_entry", &step, 1, 1);
-
-    ESP_LOGI(TAG, "Playing menu entry animation (white flash 600ms)");
-    _ctx->indicators.start(animation);
+    ESP_LOGI(TAG, "Playing menu entry animation with sound");
+    _ctx->indicators.start(RobotMenuAnimations::menuEntry(), RobotMenuSounds::menuEntry());
 }
