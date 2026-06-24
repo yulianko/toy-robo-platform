@@ -1,5 +1,13 @@
 #pragma once
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+
+#include "IndicatorsProxy.h"
+
 struct RobotContext {
-    // Add any shared state or configuration for the robot here
+    IndicatorsProxy indicators;
+
+    RobotContext(QueueHandle_t indicatorCommandQueue) : indicators(indicatorCommandQueue) {
+    }
 };

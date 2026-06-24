@@ -11,6 +11,9 @@ struct RobotEvent {
         // Push button events
         PUSH_BUTTON_SHORT_PRESSED,
         PUSH_BUTTON_LONG_PRESSED,
+
+        // Indicator events
+        INDICATORS_ANIMATION_DONE,
     };
 
     Type type;
