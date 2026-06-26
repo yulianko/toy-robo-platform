@@ -41,11 +41,10 @@ static const RgbAnimation modePulse(const RgbColor& color) {
     return animation;
 }
 
-// Generic pulse animation with configurable parameters
-static const RgbAnimation pulse(const RgbColor& color, uint32_t periodMs = 2000, float minBrightness = 0.1f) {
+static const RgbAnimation pulse(const RgbColor& color, uint32_t period, float minBrightness) {
     static RgbAnimation::Step steps[1];
 
-    steps[0] = {EffectPulse{color, periodMs, minBrightness}, 0};  // Continuous pulse
+    steps[0] = {EffectPulse{color, period, minBrightness}, 0};  // Continuous pulse
 
     static RgbAnimation animation = RgbAnimation("pulse", steps, 1, 0);
     animation = RgbAnimation("pulse", steps, 1, 0);

@@ -3,6 +3,8 @@
 #include <freertos/task.h>
 
 // SharedComponents
+#include "DistanceTask.h"
+#include "HCSR04Driver.h"
 #include "IndicatorCommand.h"
 #include "IndicatorsTask.h"
 #include "IsrButton.h"
@@ -15,6 +17,7 @@
 #include "SysButtonTask.h"
 
 // Robot components
+#include "DistanceMode.h"
 #include "ModeManagerTask.h"
 #include "RobotContext.h"
 #include "TestModes.h"
@@ -35,6 +38,10 @@ static constexpr gpio_num_t PIN_B = GPIO_NUM_15;
 // Buzzer pin
 static constexpr gpio_num_t BUZZER_PIN = GPIO_NUM_4;
 
+// Distance pins
+static constexpr gpio_num_t TRIGGER_PIN = GPIO_NUM_9;
+static constexpr gpio_num_t ECHO_PIN = GPIO_NUM_10;
+
 // Hardware objects
 
 // Buttons
@@ -54,6 +61,10 @@ static SoundLedcDriver::Config soundDriverCfg{.pin = BUZZER_PIN};
 static SoundLedcDriver soundDriver(soundDriverCfg);
 static SoundPlayer soundPlayer(soundDriver);
 
+// Distance Sensor
+static HCSR04Driver::Config distanceDriverCfg{.pinTrigger = TRIGGER_PIN, .pinEcho = ECHO_PIN};
+static HCSR04Driver distanceDriver(distanceDriverCfg);
+
 // FreeRTOS queues
 static QueueHandle_t robotEventQueue;
 static QueueHandle_t sysButtonQueue;
@@ -63,11 +74,12 @@ static QueueHandle_t indicatorCommandQueue;
 // Mode instances
 static PrintMode printMode;
 static CounterMode counterMode;
+static DistanceMode distanceMode;
 
 extern "C" void app_main() {
     ESP_LOGI(TAG, "Starting ESP32 Robot - Mode Manager Phase");
 
-    // ---- 1. Create FreeRTOS queues ----
+    // ---- Create FreeRTOS queues ----
     robotEventQueue = xQueueCreate(ModeManagerTask::QUEUE_LENGTH, sizeof(RobotEvent));
     sysButtonQueue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
     pushButtonQueue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
@@ -78,10 +90,7 @@ extern "C" void app_main() {
         return;
     }
 
-    // ---- 2. Initialize robot context with queues ----
-    static RobotContext robotContext(indicatorCommandQueue);
-
-    // ---- 3. Initialize hardware drivers ----
+    // ---- Initialize hardware drivers ----
     esp_err_t err = sysButton.init(sysButtonQueue);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to init sys button: %s", esp_err_to_name(err));
@@ -106,23 +115,34 @@ extern "C" void app_main() {
         return;
     }
 
-    // ---- 4. Initialize tasks (DI) ----
+    err = distanceDriver.init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to init distance driver: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // ---- Initialize tasks (DI) ----
     SysButtonTask::instance().init(sysButton, sysButtonQueue, robotEventQueue);
     PushButtonTask::instance().init(pushButton, pushButtonQueue, robotEventQueue);
     IndicatorsTask::instance().init(rgbPlayer, soundPlayer, indicatorCommandQueue, robotEventQueue);
+    DistanceTask::instance().init(distanceDriver, robotEventQueue);
+
+    // ---- Initialize ModeManagerTask ----
+    static RobotContext robotContext(indicatorCommandQueue, DistanceTask::instance());
     ModeManagerTask::instance().init(robotContext, robotEventQueue);
 
-    // ---- 5. Register modes with ModeManager ----
     ModeManagerTask::instance().addMode(&printMode);
     ModeManagerTask::instance().addMode(&counterMode);
+    ModeManagerTask::instance().addMode(&distanceMode);
 
-    // ---- 6. Start actuator tasks first (lower priority numbers run first) ----
+    // ---- Start actuator tasks first (lower priority numbers run first) ----
     IndicatorsTask::instance().start(3);  // Priority 3 - start first
+    DistanceTask::instance().start(3);    // Priority 3 - same as other sensor tasks
 
-    // ---- 7. Start ModeManager after actuators are ready ----
+    // ---- Start ModeManager after actuators are ready ----
     ModeManagerTask::instance().start(5);  // Priority 5 - start after actuators
 
-    // ---- 8. Start hardware tasks ----
+    // ---- Start hardware tasks ----
     SysButtonTask::instance().start(6);  // Priority 6 - highest priority
     PushButtonTask::instance().start(6);
 

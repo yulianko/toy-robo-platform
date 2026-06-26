@@ -83,15 +83,16 @@ void ModeManagerTask::handleChoosing(const RobotEvent& event) {
             showCurrentMode();
             break;
 
+        case RobotEvent::Type::SYS_BUTTON_LONG_PRESSED:
         case RobotEvent::Type::PUSH_BUTTON_SHORT_PRESSED:
         case RobotEvent::Type::PUSH_BUTTON_LONG_PRESSED:
             activateMode(_selectedIdx);
             break;
 
-        case RobotEvent::Type::SYS_BUTTON_LONG_PRESSED:
-            ESP_LOGW(TAG, "[CHOOSING] Sys button long press - esp_restart()");
-            esp_restart();
-            break;
+            /*case RobotEvent::Type::SYS_BUTTON_LONG_PRESSED:
+                ESP_LOGW(TAG, "[CHOOSING] Sys button long press - esp_restart()");
+                esp_restart();
+                break;*/
 
         default:
             break;

@@ -14,11 +14,33 @@ struct RobotEvent {
 
         // Indicator events
         INDICATORS_ANIMATION_DONE,
+
+        // Distance
+        DISTANCE_RANGE_CHANGED
+    };
+
+    struct DistanceData {
+        enum class Range : int8_t { Unknown = -1, Clear, Far, Near, Close, Critical };
+        uint16_t cm;
+        Range range;
+        uint8_t padding32;
     };
 
     Type type;
 
+    union {
+        uint32_t value{0};
+        DistanceData distance;
+    };
+
     RobotEvent() = default;
 
-    RobotEvent(Type eventType);
+    RobotEvent(Type eventType) : type(eventType) {
+    }
+
+    RobotEvent(Type eventType, uint32_t eventValue) : type(eventType), value(eventValue) {
+    }
+
+    RobotEvent(Type eventType, DistanceData eventDistance) : type(eventType), distance(eventDistance) {
+    }
 };
