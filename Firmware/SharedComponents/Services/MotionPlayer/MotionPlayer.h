@@ -6,9 +6,7 @@
 
 class MotionPlayer {
   public:
-    using OnDoneCallback = void (*)();
-
-    explicit MotionPlayer(Drivetrain& drivetrain, OnDoneCallback onDone = nullptr);
+    explicit MotionPlayer(Drivetrain& drivetrain);
 
     esp_err_t play(const MotionSequence& sequence);
     esp_err_t stop();
@@ -21,7 +19,6 @@ class MotionPlayer {
     esp_err_t advance();
 
     Drivetrain& _drivetrain;
-    OnDoneCallback _onDone;
 
     MotionSequence _sequence;
     bool _playing = false;

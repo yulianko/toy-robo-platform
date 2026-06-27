@@ -16,7 +16,10 @@ struct RobotEvent {
         INDICATORS_ANIMATION_DONE,
 
         // Distance
-        DISTANCE_RANGE_CHANGED
+        DISTANCE_RANGE_CHANGED,
+
+        // Motion
+        MOTION_DONE,
     };
 
     struct DistanceData {

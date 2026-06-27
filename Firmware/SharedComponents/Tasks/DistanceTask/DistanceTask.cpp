@@ -19,6 +19,14 @@ void DistanceTask::setProfile(const DistanceScanProfile& profile) {
     _profileDirty.store(true, std::memory_order_release);
 }
 
+void DistanceTask::resetConfirmed() {
+    portENTER_CRITICAL(&_mux);
+    _confirmed = RobotEvent::DistanceData::Range::Unknown;
+    _pending = RobotEvent::DistanceData::Range::Unknown;
+    _confirmCnt = 0;
+    portEXIT_CRITICAL(&_mux);
+}
+
 void DistanceTask::run() {
     ESP_LOGI(TAG, "started");
 
@@ -34,6 +42,11 @@ void DistanceTask::run() {
                      _profile.intervalMs,
                      _profile.confirmCount,
                      _profile.postRaw);
+        }
+
+        if (_profile.intervalMs == 0) {
+            vTaskDelay(pdMS_TO_TICKS(500));
+            continue;
         }
 
         uint16_t cm = 0;

@@ -9,7 +9,7 @@ static uint32_t nowMs() {
     return static_cast<uint32_t>(esp_timer_get_time() / 1000);
 }
 
-MotionPlayer::MotionPlayer(Drivetrain& drivetrain, OnDoneCallback onDone) : _drivetrain(drivetrain), _onDone(onDone) {
+MotionPlayer::MotionPlayer(Drivetrain& drivetrain) : _drivetrain(drivetrain) {
 }
 
 esp_err_t MotionPlayer::play(const MotionSequence& sequence) {
@@ -119,10 +119,6 @@ esp_err_t MotionPlayer::advance() {
     // Sequence complete
     _playing = false;
     ESP_LOGI(TAG, "'%s' complete", _sequence.name());
-
-    if (_onDone) {
-        _onDone();
-    }
 
     const MotionVerb lastVerb = _sequence.steps()[_sequence.count() - 1].verb;
     if (lastVerb != MotionVerb::Brake && lastVerb != MotionVerb::Coast) {

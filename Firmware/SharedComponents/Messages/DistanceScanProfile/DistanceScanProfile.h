@@ -8,7 +8,7 @@ struct DistanceScanProfile {
     bool frontOfQueue = false;  // true = critical events jump the queue
 
     static constexpr DistanceScanProfile idle() {
-        return {.intervalMs = 500, .confirmCount = 2, .postRaw = false};
+        return {.intervalMs = 0, .confirmCount = 0, .postRaw = false};
     }
     static constexpr DistanceScanProfile normal() {
         return {.intervalMs = 100, .confirmCount = 3, .postRaw = false};

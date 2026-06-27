@@ -20,6 +20,7 @@ class DistanceTask : public BaseTask {
 
     void init(IDistanceDriver& driver, QueueHandle_t robotEventQueue);
     void setProfile(const DistanceScanProfile& profile);
+    void resetConfirmed();
 
   protected:
     const char* getTaskName() const override {

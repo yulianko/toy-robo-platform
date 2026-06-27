@@ -12,6 +12,10 @@ class DistanceProxy {
         _task->setProfile(profile);
     }
 
+    void resetConfirmed() {
+        _task->resetConfirmed();
+    }
+
   private:
     DistanceTask* _task;
 };
