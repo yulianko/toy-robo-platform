@@ -31,7 +31,7 @@ static const char* TAG = "main";
 // Pin definitions
 
 // Buttons pins
-static constexpr gpio_num_t SYS_BTN_GPIO = GPIO_NUM_0;
+static constexpr gpio_num_t SYS_BTN_GPIO = GPIO_NUM_48;
 static constexpr gpio_num_t PUSH_BTN_GPIO = GPIO_NUM_47;
 
 // RGB LED pins
@@ -86,7 +86,7 @@ DRV8833Module motionDriver({
     .mcpwmGroupId = 0,
     .pwmFreqHz = 20'000,
 });
-static Drivetrain drivetrain(motionDriver, {.invertB = true});
+static Drivetrain drivetrain(motionDriver, {.invertA = true, .invertB = true});
 static MotionPlayer motionPlayer(drivetrain);
 
 // FreeRTOS queues
