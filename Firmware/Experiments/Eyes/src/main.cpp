@@ -29,15 +29,6 @@ uint32_t nowMs() {
     return static_cast<uint32_t>(esp_timer_get_time() / 1000);
 }
 
-const char* robotEventTypeToString(RobotEvent::Type type) {
-    switch (type) {
-        case RobotEvent::Type::INDICATORS_ANIMATION_DONE:
-            return "INDICATORS_ANIMATION_DONE";
-        default:
-            return "UNKNOWN";
-    }
-}
-
 static void robotEventTask(void* arg) {
     RobotEvent event;
     uint32_t animationIndex = 0;
@@ -49,7 +40,7 @@ static void robotEventTask(void* arg) {
 
     while (true) {
         if (xQueueReceive(robotEventQueue, &event, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "RobotEvent: %s", robotEventTypeToString(event.type));
+            ESP_LOGI(TAG, "RobotEvent: %s", RobotEvent::typeToString(event.type));
 
             if (event.type == RobotEvent::Type::INDICATORS_ANIMATION_DONE) {
                 // Cycle through animations

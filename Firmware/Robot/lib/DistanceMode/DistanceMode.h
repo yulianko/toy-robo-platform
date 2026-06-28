@@ -15,7 +15,6 @@ class DistanceMode : public IMode {
 
   private:
     void updateIndicators(RobotEvent::DistanceData::Range range);
-    static const char* rangeToString(RobotEvent::DistanceData::Range r);
 
     RobotContext* _ctx = nullptr;
 };

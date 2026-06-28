@@ -24,6 +24,7 @@
 #include "ModeManagerTask.h"
 #include "PatrolMode.h"
 #include "RobotContext.h"
+#include "SelfTestMode.h"
 #include "TestModes.h"
 
 static const char* TAG = "main";
@@ -98,7 +99,7 @@ static QueueHandle_t motionCommandQueue;
 
 // Mode instances
 static PrintMode printMode;
-static CounterMode counterMode;
+static SelfTestMode selfTestMode;
 static DistanceMode distanceMode;
 static PatrolMode patrolMode;
 
@@ -166,7 +167,7 @@ extern "C" void app_main() {
     ModeManagerTask::instance().init(robotContext, robotEventQueue);
 
     ModeManagerTask::instance().addMode(&printMode);
-    ModeManagerTask::instance().addMode(&counterMode);
+    ModeManagerTask::instance().addMode(&selfTestMode);
     ModeManagerTask::instance().addMode(&distanceMode);
     ModeManagerTask::instance().addMode(&patrolMode);
 

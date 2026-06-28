@@ -5,7 +5,7 @@
 namespace RobotSounds {
 
 // Universal beep
-static const SoundAnimation beep(size_t count) {
+static const SoundAnimation beep(size_t count = 1) {
     static SoundAnimation::Step steps[16];
     size_t stepCount = 0;
 

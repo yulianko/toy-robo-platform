@@ -31,7 +31,7 @@ void DistanceMode::onEvent(const RobotEvent& event) {
     const uint16_t cm = event.distance.cm;
 
     updateIndicators(range);
-    ESP_LOGI(TAG, "%s - %lu cm", rangeToString(range), cm);
+    ESP_LOGI(TAG, "%s - %lu cm", RobotEvent::rangeToString(range), cm);
 }
 
 void DistanceMode::updateIndicators(RobotEvent::DistanceData::Range range) {
@@ -53,22 +53,4 @@ void DistanceMode::updateIndicators(RobotEvent::DistanceData::Range range) {
             _ctx->indicators.start(RobotAnimations::pulse(RgbColor::green(), 1800, 0.1f));
             break;
     }
-}
-
-const char* DistanceMode::rangeToString(RobotEvent::DistanceData::Range r) {
-    switch (r) {
-        case RobotEvent::DistanceData::Range::Critical:
-            return "CRITICAL";
-        case RobotEvent::DistanceData::Range::Close:
-            return "CLOSE";
-        case RobotEvent::DistanceData::Range::Near:
-            return "NEAR";
-        case RobotEvent::DistanceData::Range::Far:
-            return "FAR";
-        case RobotEvent::DistanceData::Range::Clear:
-            return "CLEAR";
-        case RobotEvent::DistanceData::Range::Unknown:
-            return "UNKNOWN";
-    }
-    return "?";
 }

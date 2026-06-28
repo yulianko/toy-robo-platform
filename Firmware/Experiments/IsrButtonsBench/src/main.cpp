@@ -25,26 +25,11 @@ static QueueHandle_t robotEventQueue;
 static QueueHandle_t sysButtonQueue;
 static QueueHandle_t pushButtonQueue;
 
-const char* robotEventTypeToString(RobotEvent::Type type) {
-    switch (type) {
-        case RobotEvent::Type::SYS_BUTTON_SHORT_PRESSED:
-            return "SYS_BUTTON_SHORT_PRESSED";
-        case RobotEvent::Type::SYS_BUTTON_LONG_PRESSED:
-            return "SYS_BUTTON_LONG_PRESSED";
-        case RobotEvent::Type::PUSH_BUTTON_SHORT_PRESSED:
-            return "PUSH_BUTTON_SHORT_PRESSED";
-        case RobotEvent::Type::PUSH_BUTTON_LONG_PRESSED:
-            return "PUSH_BUTTON_LONG_PRESSED";
-        default:
-            return "UNKNOWN";
-    }
-}
-
 static void robotEventTask(void* arg) {
     RobotEvent event;
     while (true) {
         if (xQueueReceive(robotEventQueue, &event, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "RobotEvent: %s", robotEventTypeToString(event.type));
+            ESP_LOGI(TAG, "RobotEvent: %s", RobotEvent::typeToString(event.type));
 
             if (event.type == RobotEvent::Type::SYS_BUTTON_LONG_PRESSED) {
                 ESP_LOGW(TAG, "Executing important system command!");
