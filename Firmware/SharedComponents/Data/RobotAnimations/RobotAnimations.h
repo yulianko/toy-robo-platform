@@ -1,60 +1,94 @@
 #pragma once
 
 #include "RgbAnimation.h"
+#include "RgbColor.h"
+namespace RobotAnimations {
 
-namespace RobotEmotions {
-
-static const RgbAnimation blue() {
-    static const RgbAnimation::Step steps[] = {
-        {EffectSolid{RgbColor::blue()}, /*durationMs=*/0},
-    };
-    static const RgbAnimation animation = RgbAnimation("blue", steps, 1, /*loops=*/0);
+// Generic pulse
+static const RgbAnimation pulse(const RgbColor& color, uint32_t periodMs = 2000, float minBrightness = 0.1f) {
+    static RgbAnimation::Step steps[1];
+    steps[0] = {EffectPulse{color, periodMs, minBrightness}, 0};  // Continuous pulse
+    static RgbAnimation animation = RgbAnimation("pulse", steps, 1, 0);
+    animation = RgbAnimation("pulse", steps, 1, 0);
     return animation;
 }
 
+// Cyan, a jerky "looking around" rhythm
+static const RgbAnimation exploring() {
+    static const RgbAnimation::Step steps[] = {
+        {EffectPulse{{0, 255, 200}, /*periodMs=*/800, /*minBrightness=*/0.2f}, /*durationMs=*/800},
+        {EffectOff{}, /*durationMs=*/300},  // Pause, as if the robot stopped to think
+        {EffectPulse{{0, 255, 200}, /*periodMs=*/800, /*minBrightness=*/0.2f}, /*durationMs=*/800},
+    };
+    static const RgbAnimation animation = RgbAnimation("exploring", steps, 3, /*loops=*/2);
+    return animation;
+}
+
+// Deep blue, the pulsation very soft and continuous
 static const RgbAnimation curiosity() {
     static const RgbAnimation::Step steps[] = {
-        {EffectPulse{{0, 180, 255}, /*periodMs=*/1800, /*minBrightness=*/0.1f},
-         /*durationMs=*/1800},  // Slow blue pulse
+        {EffectPulse{{0, 100, 255}, /*periodMs=*/2000, /*minBrightness=*/0.05f}, /*durationMs=*/2000},
     };
-
-    static const RgbAnimation animation = RgbAnimation("curiosity", steps, 1, /*loops=*/6);
+    static const RgbAnimation animation = RgbAnimation("curiosity", steps, 1, /*loops=*/4);
     return animation;
 }
 
+// Super fast bright flash
 static const RgbAnimation surprise() {
     static const RgbAnimation::Step steps[] = {
-        {EffectSolid{{255, 255, 255}}, /*durationMs=*/80},  // Bright white flash
-        {EffectPulse{{200, 200, 255}, /*periodMs=*/400, /*minBrightness=*/0.0f}, /*durationMs=*/400},  // Quick fade out
-        {EffectOff{}, /*durationMs=*/150},                                                             // Pause
-        {EffectSolid{{255, 255, 255}}, /*durationMs=*/80},  // Bright white flash
-        {EffectPulse{{200, 200, 255}, /*periodMs=*/400, /*minBrightness=*/0.0f}, /*durationMs=*/400},  // Quick fade out
-        {EffectOff{}, /*durationMs=*/150},                                                             // Pause
+        {EffectSolid{{255, 255, 255}}, /*durationMs=*/60},
+        {EffectPulse{{150, 150, 255}, /*periodMs=*/300, /*minBrightness=*/0.0f}, /*durationMs=*/300},
+        {EffectOff{}, /*durationMs=*/100},
+        {EffectSolid{{255, 255, 255}}, /*durationMs=*/60},
+        {EffectPulse{{150, 150, 255}, /*periodMs=*/300, /*minBrightness=*/0.0f}, /*durationMs=*/300},
     };
-    static const RgbAnimation animation = RgbAnimation("surprise", steps, 6, /*loops=*/1);
+    static const RgbAnimation animation = RgbAnimation("surprise", steps, 5, /*loops=*/1);
     return animation;
 }
 
+// Clear green flash with confirmation
 static const RgbAnimation agreement() {
     static const RgbAnimation::Step steps[] = {
-        {EffectPulse{{0, 220, 80}, /*periodMs=*/500, /*minBrightness=*/0.0f}, /*durationMs=*/500},  // Slow green pulse
-        {EffectOff{}, /*durationMs=*/150},                                                          // Pause
-        {EffectPulse{{0, 220, 80}, /*periodMs=*/500, /*minBrightness=*/0.0f}, /*durationMs=*/500},  // Slow green pulse
-        {EffectOff{}, /*durationMs=*/1},                                                            // Pause
+        {EffectSolid{{0, 255, 0}}, /*durationMs=*/150},
+        {EffectOff{}, /*durationMs=*/100},
+        {EffectSolid{{0, 255, 0}}, /*durationMs=*/150},
     };
-    static const RgbAnimation animation = RgbAnimation("agreement", steps, 4, /*loops=*/1);
+    static const RgbAnimation animation = RgbAnimation("agreement", steps, 3, /*loops=*/1);
     return animation;
 }
 
+// Fast orange blinking to avoid confusion with Danger
 static const RgbAnimation disagreement() {
     static const RgbAnimation::Step steps[] = {
-        {EffectBlink{{255, 30, 0}, /*periodMs=*/200, /*offRatio=*/0.4f}, /*durationMs=*/600},  // Fast red blink
-        {EffectOff{}, /*durationMs=*/100},                                                     // Short pause
-        {EffectBlink{{255, 30, 0}, /*periodMs=*/200, /*offRatio=*/0.4f}, /*durationMs=*/600},  // Fast red blink
-        {EffectOff{}, /*durationMs=*/1},                                                       // Pause
+        {EffectBlink{{255, 100, 0}, /*periodMs=*/150, /*offRatio=*/0.5f},
+         /*durationMs=*/450},
+        {EffectOff{}, /*durationMs=*/150},
+        {EffectBlink{{255, 100, 0}, /*periodMs=*/150, /*offRatio=*/0.5f}, /*durationMs=*/450},
     };
-    static const RgbAnimation animation = RgbAnimation("disagreement", steps, 4, /*loops=*/1);
+    static const RgbAnimation animation = RgbAnimation("disagreement", steps, 3, /*loops=*/1);
     return animation;
 }
 
-}  // namespace RobotEmotions
+// Maximum aggressive pure red without pauses, hard strobe
+static const RgbAnimation danger() {
+    static const RgbAnimation::Step steps[] = {
+        {EffectBlink{{255, 0, 0}, /*periodMs=*/100, /*offRatio=*/0.5f}, /*durationMs=*/1000},
+    };
+    static const RgbAnimation animation = RgbAnimation("danger", steps, 1, /*loops=*/3);
+    return animation;
+}
+
+// Unique, triple accelerating blinking that transitions to stable light
+static const RgbAnimation menuEntry() {
+    static const RgbAnimation::Step steps[] = {
+        {EffectSolid{{180, 0, 255}}, /*durationMs=*/100},
+        {EffectOff{}, /*durationMs=*/100},
+        {EffectSolid{{180, 0, 255}}, /*durationMs=*/150},
+        {EffectOff{}, /*durationMs=*/80},
+        {EffectSolid{{180, 0, 255}}, /*durationMs=*/300},
+    };
+    static const RgbAnimation animation = RgbAnimation("menu_entry", steps, 5, /*loops=*/1);
+    return animation;
+}
+
+}  // namespace RobotAnimations

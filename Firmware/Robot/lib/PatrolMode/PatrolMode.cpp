@@ -16,6 +16,7 @@ void PatrolMode::onEnter(RobotContext& ctx) {
     _state = State::Patrolling;
 
     ctx.distance.setProfile(DistanceScanProfile::obstacle());
+    ctx.indicators.start(RobotAnimations::exploring(), RobotSounds::exploring());
 
     ESP_LOGI(TAG, "entered");
     startForward();
@@ -30,52 +31,35 @@ void PatrolMode::onExit() {
 }
 
 void PatrolMode::onEvent(const RobotEvent& event) {
-    if (event.type == RobotEvent::Type::MOTION_DONE) {
-        if (_state == State::Evading) {
-            _state = State::Patrolling;
-            _step = Step::MoveForward;
-            ESP_LOGI(TAG, "evasion complete - resuming patrol");
+    switch (event.type) {
+        case RobotEvent::Type::MOTION_DONE:
+            onPreviousMovementDone();
+            break;
+        case RobotEvent::Type::DISTANCE_RANGE_CHANGED:
+            onDistanceChanged(event.distance.range, event.distance.cm);
+            break;
+        default:
+            break;
+    }
+}
+
+void PatrolMode::onPreviousMovementDone() {
+    if (_state == State::Evading) {
+        _state = State::Patrolling;
+        _step = Step::MoveForward;
+        ESP_LOGI(TAG, "evasion complete - resuming patrol");
+        startForward();
+        return;
+    }
+
+    switch (_step) {
+        case Step::MoveForward:
+            startPivotRight();
+            break;
+        case Step::PivotRight:
             startForward();
-            return;
-        }
-
-        switch (_step) {
-            case Step::MoveForward:
-                startPivot();
-                break;
-            case Step::PivotRight:
-                startForward();
-                break;
-        }
-        return;
+            break;
     }
-
-    if (event.type == RobotEvent::Type::DISTANCE_RANGE_CHANGED) {
-        onDistanceChanged(event.distance.range, event.distance.cm);
-        return;
-    }
-}
-
-void PatrolMode::startForward() {
-    _step = Step::MoveForward;
-    ESP_LOGI(TAG, "step: %s", stepToString(_step));
-
-    const MotionStep steps[] = {
-        {MotionVerb::Forward, PATROL_SPEED, FORWARD_MS},
-    };
-    _ctx->motion.play(MotionSequence("patrol_forward", steps, 1));
-    _ctx->indicators.start(RobotEmotions::curiosity());
-}
-
-void PatrolMode::startPivot() {
-    _step = Step::PivotRight;
-    ESP_LOGI(TAG, "step: %s", stepToString(_step));
-
-    const MotionStep steps[] = {
-        {MotionVerb::PivotRight, PATROL_SPEED, PIVOT_MS},
-    };
-    _ctx->motion.play(MotionSequence("patrol_pivot", steps, 1));
-    _ctx->indicators.start(RobotEmotions::agreement(), RobotSounds::agreement());
 }
 
 void PatrolMode::onDistanceChanged(RobotEvent::DistanceData::Range range, uint16_t cm) {
@@ -94,31 +78,42 @@ void PatrolMode::onDistanceChanged(RobotEvent::DistanceData::Range range, uint16
             _ctx->distance.resetConfirmed();
 
             // Interrupt current motion immediately
-            _ctx->indicators.start(RobotEmotions::surprise(), RobotSounds::surprise());
+            _ctx->indicators.start(RobotAnimations::danger(), RobotSounds::danger());
 
             // Back up, pivot away, then MOTION_DONE resumes patrol
-            const MotionStep steps[] = {
-                {MotionVerb::Backward, PATROL_SPEED, 600},
-                {MotionVerb::PivotRight, PATROL_SPEED, 700},
-                {MotionVerb::Brake, 0.0f, 0},
-            };
-            _ctx->motion.play(MotionSequence("evade", steps, 3));
+            _ctx->motion.play(MotionSequences::evadeRight(PATROL_SPEED, 600, 700));
             break;
         }
 
         case RobotEvent::DistanceData::Range::Near:
             // Slow warning - visual only, don't interrupt motion yet
-            _ctx->indicators.start(RobotEmotions::curiosity());
+            _ctx->indicators.start(RobotAnimations::curiosity(), RobotSounds::curiosity());
             break;
 
         case RobotEvent::DistanceData::Range::Far:
         case RobotEvent::DistanceData::Range::Clear:
         case RobotEvent::DistanceData::Range::Unknown:
             if (_step == Step::MoveForward) {
-                _ctx->indicators.start(RobotEmotions::curiosity());
+                _ctx->indicators.start(RobotAnimations::surprise());
             }
             break;
     }
+}
+
+void PatrolMode::startForward() {
+    _step = Step::MoveForward;
+    ESP_LOGI(TAG, "step: %s", stepToString(_step));
+
+    _ctx->motion.play(MotionSequences::forwardFor(PATROL_SPEED, FORWARD_MS));
+    _ctx->indicators.start(RobotAnimations::exploring());
+}
+
+void PatrolMode::startPivotRight() {
+    _step = Step::PivotRight;
+    ESP_LOGI(TAG, "step: %s", stepToString(_step));
+
+    _ctx->motion.play(MotionSequences::pivotRightFor(PATROL_SPEED, PIVOT_MS));
+    _ctx->indicators.start(RobotAnimations::agreement(), RobotSounds::agreement());
 }
 
 const char* PatrolMode::stepToString(Step step) {

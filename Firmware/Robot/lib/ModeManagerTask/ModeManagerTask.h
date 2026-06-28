@@ -30,8 +30,8 @@ class ModeManagerTask : public BaseTask {
 
   private:
     static constexpr RgbColor MENU_COLORS[] = {
-        RgbColor::yellow(),
         RgbColor::magenta(),
+        RgbColor::yellow(),
         RgbColor::cyan(),
         RgbColor::orange(),
         RgbColor::red(),

@@ -6,8 +6,8 @@
 #include <freertos/task.h>
 
 #include "RgbColor.h"
-#include "RobotMenuAnimations.h"
-#include "RobotMenuSounds.h"
+#include "RobotAnimations.h"
+#include "RobotSounds.h"
 
 static const char* TAG = "ModeManagerTask";
 
@@ -159,10 +159,10 @@ void ModeManagerTask::showCurrentMode() {
              color.g,
              color.b);
 
-    _ctx->indicators.start(RobotMenuAnimations::modePulse(color), RobotMenuSounds::modeIndexBeeps(_selectedIdx + 1));
+    _ctx->indicators.start(RobotAnimations::pulse(color), RobotSounds::beep(_selectedIdx + 1));
 }
 
 void ModeManagerTask::startMenuEntryAnimation() {
     ESP_LOGI(TAG, "Playing menu entry animation with sound");
-    _ctx->indicators.start(RobotMenuAnimations::menuEntry(), RobotMenuSounds::menuEntry());
+    _ctx->indicators.start(RobotAnimations::menuEntry(), RobotSounds::menuEntry());
 }

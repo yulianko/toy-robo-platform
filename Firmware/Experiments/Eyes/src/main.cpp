@@ -43,7 +43,7 @@ static void robotEventTask(void* arg) {
     uint32_t animationIndex = 0;
 
     // Start first animation immediately
-    IndicatorCommand startCmd = IndicatorCommand::start(RobotEmotions::curiosity());
+    IndicatorCommand startCmd = IndicatorCommand::start(RobotAnimations::curiosity());
     xQueueSend(indicatorCommandQueue, &startCmd, portMAX_DELAY);
     ESP_LOGI(TAG, "Started first animation: curiosity");
 
@@ -58,19 +58,19 @@ static void robotEventTask(void* arg) {
                 IndicatorCommand nextCmd;
                 switch (animationIndex) {
                     case 0:
-                        nextCmd = IndicatorCommand::start(RobotEmotions::curiosity());
+                        nextCmd = IndicatorCommand::start(RobotAnimations::curiosity());
                         ESP_LOGI(TAG, "Starting curiosity animation");
                         break;
                     case 1:
-                        nextCmd = IndicatorCommand::start(RobotEmotions::surprise());
+                        nextCmd = IndicatorCommand::start(RobotAnimations::surprise());
                         ESP_LOGI(TAG, "Starting surprise animation");
                         break;
                     case 2:
-                        nextCmd = IndicatorCommand::start(RobotEmotions::agreement());
+                        nextCmd = IndicatorCommand::start(RobotAnimations::agreement());
                         ESP_LOGI(TAG, "Starting agreement animation");
                         break;
                     case 3:
-                        nextCmd = IndicatorCommand::start(RobotEmotions::disagreement());
+                        nextCmd = IndicatorCommand::start(RobotAnimations::disagreement());
                         ESP_LOGI(TAG, "Starting disagreement animation");
                         break;
 

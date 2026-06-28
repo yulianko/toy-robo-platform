@@ -24,9 +24,10 @@ class PatrolMode : public IMode {
         Evading,
     };
 
-    void startForward();
-    void startPivot();
+    void onPreviousMovementDone();
     void onDistanceChanged(RobotEvent::DistanceData::Range range, uint16_t cm);
+    void startForward();
+    void startPivotRight();
 
     static const char* stepToString(Step step);
 
