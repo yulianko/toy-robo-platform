@@ -6,43 +6,33 @@
 
 static const char* TAG = "WiFiConfigPage";
 
-void WiFiConfigPage::registerHandlers(httpd_handle_t server, void* ctx) {
-    _uriCss.uri = "/style.css";
-    _uriCss.method = HTTP_GET;
-    _uriCss.handler = handleCss;
-    _uriCss.user_ctx = ctx;
+void WiFiConfigPage::init(WiFiProxy* wifiProxy) {
+    _wifiProxy = wifiProxy;
 
-    _uriFavicon.uri = "/favicon.ico";
-    _uriFavicon.method = HTTP_GET;
-    _uriFavicon.handler = handleFavicon;
-    _uriFavicon.user_ctx = ctx;
+    _handlers[0].uri = "style.css";
+    _handlers[0].method = HTTP_GET;
+    _handlers[0].handler = handleCss;
+    _handlers[0].user_ctx = this;
 
-    _uriPageRoot.uri = "/";
-    _uriPageRoot.method = HTTP_GET;
-    _uriPageRoot.handler = handlePageConnections;
-    _uriPageRoot.user_ctx = ctx;
+    _handlers[1].uri = "";
+    _handlers[1].method = HTTP_GET;
+    _handlers[1].handler = handlePageConnections;
+    _handlers[1].user_ctx = this;
 
-    _uriApiScanGet.uri = "/api/scan";
-    _uriApiScanGet.method = HTTP_GET;
-    _uriApiScanGet.handler = handleApiScanGet;
-    _uriApiScanGet.user_ctx = ctx;
+    _handlers[2].uri = "api/scan";
+    _handlers[2].method = HTTP_GET;
+    _handlers[2].handler = handleApiScanGet;
+    _handlers[2].user_ctx = this;
 
-    _uriApiScanPost.uri = "/api/scan";
-    _uriApiScanPost.method = HTTP_POST;
-    _uriApiScanPost.handler = handleApiScanPost;
-    _uriApiScanPost.user_ctx = ctx;
+    _handlers[3].uri = "api/scan";
+    _handlers[3].method = HTTP_POST;
+    _handlers[3].handler = handleApiScanPost;
+    _handlers[3].user_ctx = this;
 
-    _uriApiConnect.uri = "/api/connect";
-    _uriApiConnect.method = HTTP_POST;
-    _uriApiConnect.handler = handleApiConnect;
-    _uriApiConnect.user_ctx = ctx;
-
-    httpd_register_uri_handler(server, &_uriCss);
-    httpd_register_uri_handler(server, &_uriFavicon);
-    httpd_register_uri_handler(server, &_uriPageRoot);
-    httpd_register_uri_handler(server, &_uriApiScanGet);
-    httpd_register_uri_handler(server, &_uriApiScanPost);
-    httpd_register_uri_handler(server, &_uriApiConnect);
+    _handlers[4].uri = "api/connect";
+    _handlers[4].method = HTTP_POST;
+    _handlers[4].handler = handleApiConnect;
+    _handlers[4].user_ctx = this;
 }
 
 esp_err_t WiFiConfigPage::handleCss(httpd_req_t* req) {
@@ -60,13 +50,13 @@ esp_err_t WiFiConfigPage::handleFavicon(httpd_req_t* req) {
 }
 
 esp_err_t WiFiConfigPage::handlePageConnections(httpd_req_t* req) {
-    WiFiProxy* wifiProxy = static_cast<WiFiProxy*>(req->user_ctx);
+    WiFiConfigPage* page = static_cast<WiFiConfigPage*>(req->user_ctx);
     char ssid[WiFiProxy::SSID_STR_LEN] = {};
     char ip[WiFiProxy::IP_ADDR_STR_LEN] = {};
 
     httpd_resp_set_type(req, "text/html");
 
-    if (wifiProxy && wifiProxy->isConnected(ssid, sizeof(ssid), ip, sizeof(ip))) {
+    if (page && page->_wifiProxy->isConnected(ssid, sizeof(ssid), ip, sizeof(ip))) {
         char statusPage[sizeof(WiFiConfigPageContent::STATUS_PAGE_TEMPLATE) + WiFiProxy::SSID_STR_LEN +
                         WiFiProxy::IP_ADDR_STR_LEN];
         snprintf(statusPage, sizeof(statusPage), WiFiConfigPageContent::STATUS_PAGE_TEMPLATE, ssid, ip);
@@ -79,11 +69,11 @@ esp_err_t WiFiConfigPage::handlePageConnections(httpd_req_t* req) {
 }
 
 esp_err_t WiFiConfigPage::handleApiScanGet(httpd_req_t* req) {
-    WiFiProxy* wifiProxy = static_cast<WiFiProxy*>(req->user_ctx);
+    WiFiConfigPage* page = static_cast<WiFiConfigPage*>(req->user_ctx);
     ScanResultSet results;
     char buf[2048];
 
-    if (!wifiProxy || !wifiProxy->getScanResults(results)) {
+    if (!page || !page->_wifiProxy->getScanResults(results)) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Scan mutex timeout");
         return ESP_FAIL;
     }
@@ -119,13 +109,13 @@ esp_err_t WiFiConfigPage::handleApiScanGet(httpd_req_t* req) {
 }
 
 esp_err_t WiFiConfigPage::handleApiScanPost(httpd_req_t* req) {
-    WiFiProxy* wifiProxy = static_cast<WiFiProxy*>(req->user_ctx);
-    if (!wifiProxy) {
+    WiFiConfigPage* page = static_cast<WiFiConfigPage*>(req->user_ctx);
+    if (!page) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No WiFi proxy");
         return ESP_FAIL;
     }
 
-    wifiProxy->postScan();
+    page->_wifiProxy->postScan();
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_sendstr(req, "Scan started");
 
@@ -133,8 +123,8 @@ esp_err_t WiFiConfigPage::handleApiScanPost(httpd_req_t* req) {
 }
 
 esp_err_t WiFiConfigPage::handleApiConnect(httpd_req_t* req) {
-    WiFiProxy* wifiProxy = static_cast<WiFiProxy*>(req->user_ctx);
-    if (!wifiProxy) {
+    WiFiConfigPage* page = static_cast<WiFiConfigPage*>(req->user_ctx);
+    if (!page) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No WiFi proxy");
         return ESP_FAIL;
     }
@@ -154,8 +144,8 @@ esp_err_t WiFiConfigPage::handleApiConnect(httpd_req_t* req) {
     char rawPassword[sizeof(msg.password)] = {};
     httpd_query_key_value(body, "ssid", rawSsid, sizeof(rawSsid));
     httpd_query_key_value(body, "password", rawPassword, sizeof(rawPassword));
-    urlDecode(rawSsid, msg.ssid, sizeof(msg.ssid));
-    urlDecode(rawPassword, msg.password, sizeof(msg.password));
+    HttpUtils::urlDecode(rawSsid, msg.ssid, sizeof(msg.ssid));
+    HttpUtils::urlDecode(rawPassword, msg.password, sizeof(msg.password));
 
     if (strlen(msg.ssid) == 0) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing SSID");
@@ -164,7 +154,7 @@ esp_err_t WiFiConfigPage::handleApiConnect(httpd_req_t* req) {
 
     ESP_LOGI(TAG, "Connect request. SSID: '%s'", msg.ssid);
 
-    if (!wifiProxy->postConnect(msg.ssid, msg.password)) {
+    if (!page->_wifiProxy->postConnect(msg.ssid, msg.password)) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Manager queue full");
         return ESP_FAIL;
     }

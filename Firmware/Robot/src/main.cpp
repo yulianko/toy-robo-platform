@@ -1,11 +1,17 @@
+#include <esp_check.h>
+#include <esp_event.h>
 #include <esp_log.h>
+#include <esp_netif.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <nvs_flash.h>
 
 // SharedComponents
 #include "DRV8833Module.h"
 #include "DistanceTask.h"
 #include "HCSR04Driver.h"
+#include "HeartbeatTask.h"
+#include "HttpServer.h"
 #include "IndicatorCommand.h"
 #include "IndicatorsTask.h"
 #include "IsrButton.h"
@@ -18,12 +24,17 @@
 #include "SoundDriver.h"
 #include "SoundPlayer.h"
 #include "SysButtonTask.h"
+#include "WiFiConfigPage.h"
+#include "WiFiManager.h"
+#include "WiFiProxy.h"
 
 // Robot components
+#include "ConfigMode.h"
 #include "DistanceMode.h"
 #include "ModeManagerTask.h"
 #include "PatrolMode.h"
 #include "RobotContext.h"
+#include "RobotControlHttpPage.h"
 #include "SelfTestMode.h"
 #include "TestModes.h"
 
@@ -90,18 +101,23 @@ DRV8833Module motionDriver({
 static Drivetrain drivetrain(motionDriver, {.invertA = true, .invertB = true});
 static MotionPlayer motionPlayer(drivetrain);
 
+// Network
+static HttpServer httpServer;
+
 // FreeRTOS queues
 static QueueHandle_t robotEventQueue;
 static QueueHandle_t sysButtonQueue;
 static QueueHandle_t pushButtonQueue;
 static QueueHandle_t indicatorCommandQueue;
 static QueueHandle_t motionCommandQueue;
+static QueueHandle_t wifiCommandQueue;
 
 // Mode instances
 static PrintMode printMode;
 static SelfTestMode selfTestMode;
 static DistanceMode distanceMode;
 static PatrolMode patrolMode;
+static ConfigMode configMode;
 
 extern "C" void app_main() {
     ESP_LOGI(TAG, "Starting ESP32 Robot - Mode Manager Phase");
@@ -112,6 +128,7 @@ extern "C" void app_main() {
     pushButtonQueue = xQueueCreate(8, sizeof(IsrButton::ButtonEvent));
     indicatorCommandQueue = xQueueCreate(8, sizeof(IndicatorCommand));
     motionCommandQueue = xQueueCreate(8, sizeof(MotionCommand));
+    wifiCommandQueue = xQueueCreate(4, sizeof(WmMsg));
 
     if (!robotEventQueue || !sysButtonQueue || !pushButtonQueue || !indicatorCommandQueue) {
         ESP_LOGE(TAG, "Failed to create queues");
@@ -119,41 +136,24 @@ extern "C" void app_main() {
     }
 
     // ---- Initialize hardware drivers ----
-    esp_err_t err = sysButton.init(sysButtonQueue);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init sys button: %s", esp_err_to_name(err));
-        return;
-    }
+    ESP_RETURN_VOID_ON_ERROR(sysButton.init(sysButtonQueue), TAG, "Failed to init sys button");
+    ESP_RETURN_VOID_ON_ERROR(pushButton.init(pushButtonQueue), TAG, "Failed to init push button");
+    ESP_RETURN_VOID_ON_ERROR(rgbDriver.init(), TAG, "Failed to init RGB driver");
+    ESP_RETURN_VOID_ON_ERROR(soundDriver.init(), TAG, "Failed to init sound driver");
+    ESP_RETURN_VOID_ON_ERROR(distanceDriver.init(), TAG, "Failed to init distance driver");
+    ESP_RETURN_VOID_ON_ERROR(motionDriver.init(), TAG, "Failed to init motion driver");
 
-    err = pushButton.init(pushButtonQueue);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init push button: %s", esp_err_to_name(err));
-        return;
+    // ---- Initialize Net ----
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_RETURN_VOID_ON_ERROR(nvs_flash_erase(), TAG, "Failed to erase nvs flash");
+        ret = nvs_flash_init();
     }
+    ESP_RETURN_VOID_ON_ERROR(ret, TAG, "Failed to init nvs flash");
 
-    err = rgbDriver.init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init RGB driver: %s", esp_err_to_name(err));
-        return;
-    }
-
-    err = soundDriver.init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init sound driver: %s", esp_err_to_name(err));
-        return;
-    }
-
-    err = distanceDriver.init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init distance driver: %s", esp_err_to_name(err));
-        return;
-    }
-
-    err = motionDriver.init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init motion driver: %s", esp_err_to_name(err));
-        return;
-    }
+    // default event loop and TCP/IP stack
+    ESP_RETURN_VOID_ON_ERROR(esp_event_loop_create_default(), TAG, "Failed to create event loop");
+    ESP_RETURN_VOID_ON_ERROR(esp_netif_init(), TAG, "Failed to init netif");
 
     // ---- Initialize tasks (DI) ----
     SysButtonTask::instance().init(sysButton, sysButtonQueue, robotEventQueue);
@@ -161,20 +161,47 @@ extern "C" void app_main() {
     IndicatorsTask::instance().init(rgbPlayer, soundPlayer, indicatorCommandQueue, robotEventQueue);
     DistanceTask::instance().init(distanceDriver, robotEventQueue);
     MotionTask::instance().init(motionPlayer, motionCommandQueue, robotEventQueue);
+    WiFiManager::Config wmConfig = {
+        .scanRssiThreshold = -85,   // dBm
+        .scanMaxDisplay = 10,       // how many to present to user
+        .connectTimeoutMs = 15000,  // ms
+        .driver =
+            {
+                .apSsid = "MyNet",
+                .apPassword = "_1234567",
+                .apChannel = 1,
+                .apMaxConn = 4,
+            },
+    };
+
+    WiFiManager::instance().init(wmConfig, wifiCommandQueue);
 
     // ---- Initialize ModeManagerTask ----
-    static RobotContext robotContext(indicatorCommandQueue, DistanceTask::instance(), motionCommandQueue);
+    static WiFiProxy wifiProxy(&WiFiManager::instance(), wifiCommandQueue);
+    static RobotContext robotContext(indicatorCommandQueue, DistanceTask::instance(), motionCommandQueue, wifiProxy);
     ModeManagerTask::instance().init(robotContext, robotEventQueue);
 
     ModeManagerTask::instance().addMode(&printMode);
     ModeManagerTask::instance().addMode(&selfTestMode);
     ModeManagerTask::instance().addMode(&distanceMode);
     ModeManagerTask::instance().addMode(&patrolMode);
+    ModeManagerTask::instance().addMode(&configMode);
 
     // ---- Start actuator tasks first (lower priority numbers run first) ----
     IndicatorsTask::instance().start(3);  // Priority 3 - start first
     MotionTask::instance().start(3);      // Priority 3 - same as other actuators tasks
     DistanceTask::instance().start(3);    // Priority 3 - same as other sensor tasks
+    WiFiManager::instance().start(5);     // Priority 5 - network
+
+    static WiFiConfigPage wifiPage("");
+    static RobotControlHttpPage controlPage("control");
+    wifiPage.init(&wifiProxy);
+    controlPage.init(&robotContext);
+
+    IHttpPage* pages[] = {&wifiPage, &controlPage};
+
+    HttpServer::Config httpServerConfig = {.port = 80, .maxSockets = 4, .stackSize = 6144};
+    httpServer.start(httpServerConfig, pages, 2);
 
     // ---- Start ModeManager after actuators are ready ----
     ModeManagerTask::instance().start(5);  // Priority 5 - start after actuators
@@ -182,6 +209,9 @@ extern "C" void app_main() {
     // ---- Start hardware tasks ----
     SysButtonTask::instance().start(6);  // Priority 6 - highest priority
     PushButtonTask::instance().start(6);
+
+    // ---- Start diagnostic task ----
+    startHeartbeatTask();
 
     ESP_LOGI(TAG, "All systems started successfully");
     ESP_LOGI(TAG, "Use SYS button to cycle modes, PUSH button to select/interact");

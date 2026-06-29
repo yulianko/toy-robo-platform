@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 
+namespace HttpUtils {
 inline int urlDecode(const char* src, char* dst, int dstSize) {
     int di = 0;
     for (int si = 0; src[si] != '\0' && di < dstSize - 1; ++si) {
@@ -21,3 +22,24 @@ inline int urlDecode(const char* src, char* dst, int dstSize) {
     dst[di] = '\0';
     return di;
 }
+
+inline bool joinUri(char* dst, size_t dstSize, const char* route, const char* uri) {
+    if (dst == nullptr || dstSize == 0 || route == nullptr || uri == nullptr) {
+        return false;
+    }
+
+    int written;
+    if (route[0] == '\0' && uri[0] == '\0') {
+        written = snprintf(dst, dstSize, "/");
+    } else if (route[0] == '\0') {
+        written = snprintf(dst, dstSize, "/%s", uri);
+    } else if (uri[0] == '\0') {
+        written = snprintf(dst, dstSize, "/%s", route);
+    } else {
+        written = snprintf(dst, dstSize, "/%s/%s", route, uri);
+    }
+
+    return written > 0 && (size_t)written < dstSize;
+}
+
+}  // namespace HttpUtils

@@ -128,15 +128,12 @@ void WiFiManager::eventHandler(void* arg, esp_event_base_t base, int32_t id, voi
 
 void WiFiManager::doScan() {
     ESP_LOGI(TAG, "Scanning...");
-    ESP_LOGI(TAG, "Stack HWM: %d bytes free", uxTaskGetStackHighWaterMark(nullptr) * sizeof(StackType_t));
 
     uint16_t found = MAX_SCAN_RESULTS;
     if (_driver.scan(rawScanResults, &found) != ESP_OK) {
         ESP_LOGE(TAG, "Scan failed");
         return;
     }
-
-    ESP_LOGI(TAG, "After internal scan");
 
     std::sort(rawScanResults, rawScanResults + found, [](const wifi_ap_record_t& a, const wifi_ap_record_t& b) {
         return a.rssi > b.rssi;

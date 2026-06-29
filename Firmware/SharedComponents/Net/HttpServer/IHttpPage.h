@@ -3,7 +3,18 @@
 
 class IHttpPage {
   public:
+    IHttpPage(const char* route) : ROUTE(route) {
+    }
+
     virtual ~IHttpPage() = default;
-    virtual void registerHandlers(httpd_handle_t server, void* ctx) = 0;
+
+    virtual const httpd_uri_t* handlers() const = 0;
     virtual uint8_t handlerCount() const = 0;
+
+    const char* route() const {
+        return ROUTE;
+    }
+
+  private:
+    const char* ROUTE;
 };

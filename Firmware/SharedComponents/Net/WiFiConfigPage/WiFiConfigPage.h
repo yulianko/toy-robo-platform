@@ -1,19 +1,25 @@
 #include "IHttpPage.h"
+#include "WiFiProxy.h"
 
 class WiFiConfigPage : public IHttpPage {
   public:
-    void registerHandlers(httpd_handle_t server, void* ctx) override;
+    WiFiConfigPage(const char* route) : IHttpPage(route) {
+    }
+
+    void init(WiFiProxy* wifiProxy);
+
+    const httpd_uri_t* handlers() const override {
+        return _handlers;
+    }
     uint8_t handlerCount() const override {
-        return 6;
+        return HANDLER_COUNT;
     }
 
   private:
-    httpd_uri_t _uriCss{};
-    httpd_uri_t _uriFavicon{};
-    httpd_uri_t _uriPageRoot{};
-    httpd_uri_t _uriApiScanGet{};
-    httpd_uri_t _uriApiScanPost{};
-    httpd_uri_t _uriApiConnect{};
+    static constexpr uint8_t HANDLER_COUNT = 5;
+    httpd_uri_t _handlers[HANDLER_COUNT] = {};
+
+    WiFiProxy* _wifiProxy;
 
     static esp_err_t handleCss(httpd_req_t* req);
     static esp_err_t handleFavicon(httpd_req_t* req);
