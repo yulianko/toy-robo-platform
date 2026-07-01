@@ -40,13 +40,13 @@ void DistanceMode::updateIndicators(RobotEvent::DistanceData::Range range) {
             _ctx->indicators.start(RobotAnimations::pulse(RgbColor::red(), 300, 0.5f), RobotSounds::beep(3));
             break;
         case RobotEvent::DistanceData::Range::Close:
-            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::red(), 600, 0.3f), RobotSounds::beep(2));
+            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::magenta(), 600, 0.3f), RobotSounds::beep(2));
             break;
         case RobotEvent::DistanceData::Range::Near:
-            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::orange(), 1000, 0.1f), RobotSounds::beep(1));
+            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::yellow(), 1000, 0.1f), RobotSounds::beep(1));
             break;
         case RobotEvent::DistanceData::Range::Far:
-            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::yellow(), 1500, 0.05f));
+            _ctx->indicators.start(RobotAnimations::pulse(RgbColor::white(), 1500, 0.05f));
             break;
         case RobotEvent::DistanceData::Range::Clear:
         case RobotEvent::DistanceData::Range::Unknown:

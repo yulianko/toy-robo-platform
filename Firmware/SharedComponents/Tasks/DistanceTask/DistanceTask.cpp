@@ -81,7 +81,7 @@ void DistanceTask::resetHysteresis() {
 
 RobotEvent::DistanceData::Range DistanceTask::classifyDistance(uint16_t cm) {
     if (cm <= 20) return RobotEvent::DistanceData::Range::Critical;
-    if (cm <= 50) return RobotEvent::DistanceData::Range::Close;
+    if (cm <= 30) return RobotEvent::DistanceData::Range::Close;
     if (cm <= 100) return RobotEvent::DistanceData::Range::Near;
     if (cm <= 200) return RobotEvent::DistanceData::Range::Far;
     return RobotEvent::DistanceData::Range::Clear;
