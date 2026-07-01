@@ -42,4 +42,26 @@ inline bool joinUri(char* dst, size_t dstSize, const char* route, const char* ur
     return written > 0 && (size_t)written < dstSize;
 }
 
+inline bool getQueryInt(httpd_req_t* req, const char* key, int& out, long minVal = 1, long maxVal = INT_MAX) {
+    char query[64];
+    esp_err_t err = httpd_req_get_url_query_str(req, query, sizeof(query));
+    if (err != ESP_OK) {
+        return false;
+    }
+
+    char value[16];
+    if (httpd_query_key_value(query, key, value, sizeof(value)) != ESP_OK) {
+        return false;
+    }
+
+    char* end = nullptr;
+    long parsed = std::strtol(value, &end, 10);
+    if (end == value || *end != '\0' || parsed < minVal || parsed > maxVal) {
+        return false;
+    }
+
+    out = static_cast<int>(parsed);
+    return true;
+}
+
 }  // namespace HttpUtils

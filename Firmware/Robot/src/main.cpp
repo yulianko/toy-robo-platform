@@ -8,13 +8,14 @@
 
 // SharedComponents
 #include "DRV8833Module.h"
+#include "DiagnosticsTask.h"
 #include "DistanceTask.h"
 #include "HCSR04Driver.h"
-#include "DiagnosticsTask.h"
 #include "HttpServer.h"
 #include "IndicatorCommand.h"
 #include "IndicatorsTask.h"
 #include "IsrButton.h"
+#include "LogBufferPage.h"
 #include "MotionCommand.h"
 #include "MotionTask.h"
 #include "PushButtonTask.h"
@@ -195,13 +196,16 @@ extern "C" void app_main() {
 
     static WiFiConfigPage wifiPage("");
     static RobotControlHttpPage controlPage("control");
+    static LogBufferPage logPage("logs");
+
     wifiPage.init(&wifiProxy);
     controlPage.init(&robotContext);
+    logPage.init();
 
-    IHttpPage* pages[] = {&wifiPage, &controlPage};
+    IHttpPage* pages[] = {&wifiPage, &controlPage, &logPage};
 
     HttpServer::Config httpServerConfig = {.port = 80, .maxSockets = 4, .stackSize = 6144};
-    httpServer.start(httpServerConfig, pages, 2);
+    httpServer.start(httpServerConfig, pages, 3);
 
     // ---- Start ModeManager after actuators are ready ----
     ModeManagerTask::instance().start(5);  // Priority 5 - start after actuators
