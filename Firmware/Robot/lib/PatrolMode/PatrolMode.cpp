@@ -68,8 +68,7 @@ void PatrolMode::onDistanceChanged(RobotEvent::DistanceData::Range range, uint16
     }
 
     switch (range) {
-        case RobotEvent::DistanceData::Range::Critical:
-        case RobotEvent::DistanceData::Range::Close: {
+        case RobotEvent::DistanceData::Range::Critical: {
             ESP_LOGI(TAG, "obstacle at %u cm - evading", cm);
             _state = State::Evading;
 
@@ -85,17 +84,21 @@ void PatrolMode::onDistanceChanged(RobotEvent::DistanceData::Range range, uint16
             break;
         }
 
+        case RobotEvent::DistanceData::Range::Close:
         case RobotEvent::DistanceData::Range::Near:
             // Slow warning - visual only, don't interrupt motion yet
             _ctx->indicators.start(RobotAnimations::curiosity(), RobotSounds::curiosity());
             break;
 
         case RobotEvent::DistanceData::Range::Far:
-        case RobotEvent::DistanceData::Range::Clear:
-        case RobotEvent::DistanceData::Range::Unknown:
             if (_step == Step::MoveForward) {
                 _ctx->indicators.start(RobotAnimations::surprise());
             }
+            break;
+
+        case RobotEvent::DistanceData::Range::Clear:
+        case RobotEvent::DistanceData::Range::Unknown:
+        default:
             break;
     }
 }
