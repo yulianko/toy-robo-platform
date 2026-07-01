@@ -10,7 +10,7 @@
 #include "DRV8833Module.h"
 #include "DistanceTask.h"
 #include "HCSR04Driver.h"
-#include "HeartbeatTask.h"
+#include "DiagnosticsTask.h"
 #include "HttpServer.h"
 #include "IndicatorCommand.h"
 #include "IndicatorsTask.h"
@@ -211,7 +211,7 @@ extern "C" void app_main() {
     PushButtonTask::instance().start(6);
 
     // ---- Start diagnostic task ----
-    startHeartbeatTask();
+    DiagnosticsTask::instance().start();
 
     ESP_LOGI(TAG, "All systems started successfully");
     ESP_LOGI(TAG, "Use SYS button to cycle modes, PUSH button to select/interact");

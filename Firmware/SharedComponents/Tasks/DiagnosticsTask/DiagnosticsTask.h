@@ -30,6 +30,9 @@ class DiagnosticsTask {
 
     void dumpBufferToString(char* outBuffer, size_t maxLen);
 
+    using DumpSinkFn = bool (*)(const char* data, size_t len, void* ctx);
+    bool dumpBufferToSink(DumpSinkFn sink, void* ctx);
+
   private:
     DiagnosticsTask();
 
