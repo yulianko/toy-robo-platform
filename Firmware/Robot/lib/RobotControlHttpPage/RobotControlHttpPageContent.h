@@ -56,6 +56,10 @@ const char* HTML_PAGE = R"html(
                     <button class="btn" onclick="moveWithSpeed('right')">Right</button>
                 </div>
                 <div>
+                    <button class="btn" onclick="moveWithSpeed('pivot_left')">Pivot Left</button>
+                    <button class="btn" onclick="moveWithSpeed('pivot_right')">Pivot Right</button>
+                </div>
+                <div>
                     <button class="btn" onclick="moveWithSpeed('backward')">Backward</button>
                 </div>
                 <hr>

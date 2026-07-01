@@ -91,6 +91,12 @@ esp_err_t RobotControlHttpPage::handleApiMove(httpd_req_t* req) {
     } else if (strstr(buf, "\"dir\":\"backward\"")) {
         page->_robotContext->motion.play(MotionSequences::backwardFor(speed, 1000));
         ESP_LOGI(TAG, "Moving Backward (speed: %.2f)", speed);
+    } else if (strstr(buf, "\"dir\":\"pivot_left\"")) {
+        page->_robotContext->motion.play(MotionSequences::pivotLeftFor(speed, 1000));
+        ESP_LOGI(TAG, "Pivoting Left (speed: %.2f)", speed);
+    } else if (strstr(buf, "\"dir\":\"pivot_right\"")) {
+        page->_robotContext->motion.play(MotionSequences::pivotRightFor(speed, 1000));
+        ESP_LOGI(TAG, "Pivoting Right (speed: %.2f)", speed);
     }
 
     httpd_resp_sendstr(req, "{\"status\":\"ok\"}");
@@ -128,7 +134,7 @@ esp_err_t RobotControlHttpPage::handleApiIndicator(httpd_req_t* req) {
                 AnimationType anim = static_cast<AnimationType>(animValue);
                 switch (anim) {
                     case AnimationType::Exploring:
-                        page->_robotContext->indicators.start(RobotAnimations::exploring(), RobotSounds::curiosity());
+                        page->_robotContext->indicators.start(RobotAnimations::exploring(), RobotSounds::exploring());
                         ESP_LOGI(TAG, "Indicator: Exploring");
                         break;
                     case AnimationType::Curiosity:
@@ -136,20 +142,20 @@ esp_err_t RobotControlHttpPage::handleApiIndicator(httpd_req_t* req) {
                         ESP_LOGI(TAG, "Indicator: Curiosity");
                         break;
                     case AnimationType::Surprise:
-                        page->_robotContext->indicators.start(RobotAnimations::surprise(), RobotSounds::curiosity());
+                        page->_robotContext->indicators.start(RobotAnimations::surprise(), RobotSounds::surprise());
                         ESP_LOGI(TAG, "Indicator: Surprise");
                         break;
                     case AnimationType::Agreement:
-                        page->_robotContext->indicators.start(RobotAnimations::agreement(), RobotSounds::curiosity());
+                        page->_robotContext->indicators.start(RobotAnimations::agreement(), RobotSounds::agreement());
                         ESP_LOGI(TAG, "Indicator: Agreement");
                         break;
                     case AnimationType::Disagreement:
                         page->_robotContext->indicators.start(RobotAnimations::disagreement(),
-                                                              RobotSounds::curiosity());
+                                                              RobotSounds::disagreement());
                         ESP_LOGI(TAG, "Indicator: Disagreement");
                         break;
                     case AnimationType::Danger:
-                        page->_robotContext->indicators.start(RobotAnimations::danger(), RobotSounds::curiosity());
+                        page->_robotContext->indicators.start(RobotAnimations::danger(), RobotSounds::danger());
                         ESP_LOGI(TAG, "Indicator: Danger");
                         break;
                     default:
