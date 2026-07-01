@@ -3,6 +3,15 @@
 #include "IHttpPage.h"
 #include "RobotContext.h"
 
+enum class AnimationType : uint8_t {
+    Exploring = 0,
+    Curiosity = 1,
+    Surprise = 2,
+    Agreement = 3,
+    Disagreement = 4,
+    Danger = 5
+};
+
 class RobotControlHttpPage : public IHttpPage {
   public:
     RobotControlHttpPage(const char* route) : IHttpPage(route) {

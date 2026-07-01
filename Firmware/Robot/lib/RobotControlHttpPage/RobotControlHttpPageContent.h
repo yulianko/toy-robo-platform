@@ -14,6 +14,7 @@ const char* HTML_PAGE = R"html(
             <title>Robot Control Panel</title>
             <link rel="stylesheet" href="/control/style.css">
             <script>
+                let currentSpeed = 0.65;
                 async function sendCmd(url, body = {}) {
                     try {
                         let res = await fetch(url, {
@@ -26,26 +27,51 @@ const char* HTML_PAGE = R"html(
                         alert('Network error');
                     }
                 }
+                function moveWithSpeed(dir) {
+                    sendCmd('control/api/command/move', {dir: dir, speed: currentSpeed});
+                }
             </script>
         </head>
         <body>
             <div class="container">
                 <h2>Robot Control</h2>
                 <div>
-                    <button class="btn" onclick="sendCmd('control/api/command/move', {dir: 'forward'})">Forward</button>
+                    <label for="speedControl">Speed (0-1):</label>
+                    <input type="range" id="speedControl" min="0" max="1" step="0.05" value="0.65" style="width: 200px;">
+                    <span id="speedValue">0.65</span>
+                    <script>
+                        document.getElementById('speedControl').addEventListener('input', (e) => {
+                            currentSpeed = parseFloat(e.target.value);
+                            document.getElementById('speedValue').textContent = currentSpeed.toFixed(2);
+                        });
+                    </script>
+                </div>
+                <hr>
+                <div>
+                    <button class="btn" onclick="moveWithSpeed('forward')">Forward</button>
                 </div>
                 <div>
-                    <button class="btn" onclick="sendCmd('control/api/command/move', {dir: 'left'})">Left</button>
+                    <button class="btn" onclick="moveWithSpeed('left')">Left</button>
                     <button class="btn btn-stop" onclick="sendCmd('control/api/command/stop')">STOP</button>
-                    <button class="btn" onclick="sendCmd('control/api/command/move', {dir: 'right'})">Right</button>
+                    <button class="btn" onclick="moveWithSpeed('right')">Right</button>
                 </div>
                 <div>
-                    <button class="btn" onclick="sendCmd('control/api/command/move', {dir: 'backward'})">Backward</button>
+                    <button class="btn" onclick="moveWithSpeed('backward')">Backward</button>
                 </div>
                 <hr>
                 <h3>Indicators</h3>
-                <button class="btn btn-warn" onclick="sendCmd('control/api/command/indicator', {action: 'alert'})">Trigger Alert</button>
-                <button class="btn" onclick="sendCmd('control/api/command/indicator', {action: 'stop'})">Clear Indicator</button>
+                <div>
+                    <select id="animationSelect" style="padding: 8px; font-size: 16px; margin-right: 10px;">
+                        <option value="0">Exploring</option>
+                        <option value="1" selected>Curiosity</option>
+                        <option value="2">Surprise</option>
+                        <option value="3">Agreement</option>
+                        <option value="4">Disagreement</option>
+                        <option value="5">Danger</option>
+                    </select>
+                    <button class="btn btn-warn" onclick="let anim = parseInt(document.getElementById('animationSelect').value); sendCmd('control/api/command/indicator', {action: 'play', animation: anim})">Trigger</button>
+                    <button class="btn" onclick="sendCmd('control/api/command/indicator', {action: 'stop'})">Clear</button>
+                </div>
             </div>
         </body>
         </html>
