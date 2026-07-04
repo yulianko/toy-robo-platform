@@ -12,30 +12,9 @@ The system is built for safe, responsive operation:
 
 ---
 
-## Layers
+## Diagram
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                      Modes (IMode)                                │
-│ PrintMode · SelfTestMode · DistanceMode · PatrolMode · ConfigMode │
-└───────────────────────┬───────────────────────────────────────────┘
-         commands ↓     │     ↑ events
-┌───────────────────────▼───────────────────────────────────────────┐
-│               ModeManagerTask (dispatcher)                        │
-│    ENTERING_MENU ◄─► CHOOSING ◄─► RUNNING                         │
-└───────────────────────┬───────────────────────────────────────────┘
-                        │
-┌───────────────────────▼───────────────────────────────────────────┐
-│ SysButtonTask · PushButtonTask · IndicatorsTask · MotionTask      │
-│ DistanceTask · WiFiManager                                        │
-└───────────────────────────────────────────────────────────────────┘
-                        │
-┌───────────────────────▼───────────────────────────────────────────┐
-│              Hardware Services / Drivers                          │
-│ IsrButton · RgbLedDriver · SoundLedcDriver · HCSR04Driver         │
-│ DRV8833Module · Wi-Fi stack                                       │
-└───────────────────────────────────────────────────────────────────┘
-```
+![Architecture](./ESP32FreeRTOS.png)
 
 ---
 
@@ -61,12 +40,13 @@ The system is built for safe, responsive operation:
 
 | Type                  | Role                                                                       |
 | --------------------- | -------------------------------------------------------------------------- |
+| `ModeManagerTask`     | Singleton dispatcher that owns the state machine and central event loop    |
 | `RobotEvent`          | Single event vocabulary for all system and sensor events                   |
-| `RobotEvent::DistanceData` | Distance payload with raw centimeters and classified range               |
+range               |
 | `IMode`               | Behavior interface implemented by every mode                              |
 | `RobotContext`        | Command proxies passed into an active mode                                 |
-| `ModeManagerTask`     | Singleton dispatcher that owns the state machine and central event loop    |
-| `WiFiProxy`           | Network command proxy used by modes to access Wi-Fi services               |
+
+
 
 ---
 
